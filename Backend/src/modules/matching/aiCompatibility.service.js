@@ -133,7 +133,9 @@ Respond ONLY with a valid JSON object matching this exact schema:
 }
 `;
 
-        const model = env.GROQ_MODEL || 'llama3-8b-8192';
+        const model = env.GROQ_MODEL || 'openai/gpt-oss-120b';
+
+
 
         const response = await groqClient.chat.completions.create({
             model,
@@ -148,9 +150,10 @@ Respond ONLY with a valid JSON object matching this exact schema:
                 },
             ],
             temperature: 0.1,
-            max_tokens: 500,
+            max_tokens: 2048,
             response_format: { type: 'json_object' },
         });
+
 
         const rawContent = response.choices[0]?.message?.content?.trim();
         const parsed = JSON.parse(rawContent);

@@ -70,12 +70,14 @@ SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
-# AI & LLM Engine (for Phase 3)
+# AI & LLM Engine (Groq Model)
 GROQ_API_KEY=your-groq-api-key
+GROQ_MODEL=openai/gpt-oss-120b
 
 # Secret Keys
 JWT_SECRET=your-secure-jwt-secret
 ```
+
 
 ---
 
@@ -129,8 +131,10 @@ Standard Error Response Envelope:
 
 ### 1. Authentication & Profile Endpoints (`/api/v1/auth`)
 
+*Development Note: When an OTP is requested, the 6-digit code is generated and printed directly to the server terminal console with `console.log`.*
+
 #### `POST /api/v1/auth/send-otp`
-Request an SMS OTP code to a phone number.
+Request a one-time OTP code for registration or login.
 - **Access**: Public
 - **Request Body**:
   ```json
@@ -143,52 +147,97 @@ Request an SMS OTP code to a phone number.
   {
     "success": true,
     "statusCode": 200,
-    "message": "OTP sent successfully",
+    "message": "OTP sent for login (Printed in server terminal)",
     "data": {
       "phone": "+919876543210",
-      "message": "OTP sent successfully to phone number"
+      "isRegistered": true,
+      "message": "OTP sent for login (Printed in server terminal)"
     }
   }
   ```
 
-#### `POST /api/v1/auth/verify-otp`
-Verify SMS OTP, authenticate session, and auto-provision profile.
+#### `POST /api/v1/auth/register`
+Register a new user account with phone, OTP, and profile details.
 - **Access**: Public
 - **Request Body**:
   ```json
   {
     "phone": "+919876543210",
-    "token": "123456",
-    "role": "owner", 
-    "fullName": "Rajesh Kumar",
-    "companyName": "Rajesh Transporters"
+    "otp": "482915",
+    "full_name": "Rajesh Kumar",
+    "role": "owner",
+    "company_name": "Rajesh Transporters",
+    "gst_number": "08AAAAA0000A1Z5",
+    "email": "rajesh@transporters.com"
   }
   ```
   *(Roles: `owner`, `driver`, `business`)*
+- **Response (201 Created)**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 201,
+    "message": "User registered successfully",
+    "data": {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "user": {
+        "id": "7b8e1a23-...",
+        "phone": "+919876543210",
+        "full_name": "Rajesh Kumar",
+        "role": "owner",
+        "company_name": "Rajesh Transporters",
+        "gst_number": "08AAAAA0000A1Z5",
+        "rating_avg": "5.00"
+      },
+      "isNewUser": true
+    }
+  }
+  ```
+
+#### `POST /api/v1/auth/login`
+Log in an existing registered user using phone number and OTP.
+- **Access**: Public
+- **Request Body**:
+  ```json
+  {
+    "phone": "+919876543210",
+    "otp": "482915"
+  }
+  ```
 - **Response (200 OK)**:
   ```json
   {
     "success": true,
     "statusCode": 200,
-    "message": "User registered and authenticated successfully",
+    "message": "Login successful",
     "data": {
-      "user": { "id": "...", "phone": "+919876543210" },
-      "profile": {
-        "id": "...",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "user": {
+        "id": "7b8e1a23-...",
         "phone": "+919876543210",
         "full_name": "Rajesh Kumar",
         "role": "owner",
         "company_name": "Rajesh Transporters",
         "rating_avg": "5.00"
       },
-      "session": { "access_token": "..." },
-      "isNewUser": true
+      "isNewUser": false
     }
   }
   ```
 
-#### `GET /api/v1/auth/me`
-Retrieve currently logged-in user profile.
+#### `POST /api/v1/auth/verify-otp`
+Unified verification endpoint (handles login if user is registered, or signs up if registration fields are provided).
+- **Access**: Public
+- **Request Body**:
+  ```json
+  {
+    "phone": "+919876543210",
+    "otp": "482915"
+  }
+  ```
+
+#### `GET /api/v1/auth/me` (or `GET /api/v1/auth/getme`)
+Retrieve currently authenticated user profile using mandatory JWT.
 - **Access**: Protected (`Bearer <token>`)
 - **Headers**: `Authorization: Bearer <token>`
 - **Response (200 OK)**: Returns profile object with role and ratings.
@@ -205,6 +254,7 @@ Update current user profile information.
     "email": "rajesh@freight.com"
   }
   ```
+
 
 ---
 

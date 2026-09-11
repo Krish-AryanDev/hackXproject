@@ -11,8 +11,10 @@ export const env = {
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || '',
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '',
     GROQ_API_KEY: process.env.GROQ_API_KEY || '',
+    GROQ_MODEL: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
     JWT_SECRET: process.env.JWT_SECRET || 'hackx-secret-key-change-in-prod',
 };
+
 
 
 // Validate critical variables in non-test environment

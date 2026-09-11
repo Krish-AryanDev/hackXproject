@@ -1,62 +1,58 @@
 import jwt from 'jsonwebtoken';
-import { supabase, supabaseAdmin } from '../db/db.js';
+import { supabaseAdmin } from '../db/db.js';
 import { ApiError } from '../utils/apiError.util.js';
 import { asyncHandler } from '../utils/asyncHandler.util.js';
 import env from '../config/env.js';
 
 /**
  * Authentication Middleware
- * Supports both Backend Signed JWT tokens and Supabase Auth session tokens
+ * Validates mandatory Bearer JWT token and attaches user profile to req.user
  */
 export const authenticateUser = asyncHandler(async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        throw ApiError.unauthorized('Authentication token is required (Bearer <token>)');
+        throw ApiError.unauthorized('Authentication token is required (Header: Authorization: Bearer <token>)');
     }
 
     const token = authHeader.split(' ')[1];
 
-    // 1. Try Backend Native JWT Verification
+    let decoded = null;
     try {
-        const decoded = jwt.verify(token, env.JWT_SECRET);
-        if (decoded?.id) {
-            const { data: profile, error: profileError } = await supabaseAdmin
-                .from('profiles')
-                .select('*')
-                .eq('id', decoded.id)
-                .maybeSingle();
-
-            if (profile) {
-                req.user = profile;
-                req.token = token;
-                return next();
-            }
+        decoded = jwt.verify(token, env.JWT_SECRET);
+    } catch (err) {
+        if (err.name === 'TokenExpiredError') {
+            throw ApiError.unauthorized('Authentication token has expired. Please log in again.');
         }
-    } catch (jwtErr) {
-        // Not a backend local JWT, try Supabase Auth Session Token
+        throw ApiError.unauthorized('Invalid authentication token');
     }
 
-    // 2. Try Supabase Auth Session Token Verification
-    const { data: authData, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !authData?.user) {
-        throw ApiError.unauthorized('Invalid or expired authentication token');
+    if (!decoded || !decoded.id) {
+        throw ApiError.unauthorized('Invalid token payload');
     }
 
-    // Fetch corresponding profile
-    const { data: profile, error: profileError } = await supabaseAdmin
+    // Fetch user profile from database
+    let profile = null;
+    const { data, error } = await supabaseAdmin
         .from('profiles')
         .select('*')
-        .eq('id', authData.user.id)
+        .eq('id', decoded.id)
         .maybeSingle();
 
-    if (profileError || !profile) {
-        throw ApiError.unauthorized('User profile not found in system');
+    if (error || !data) {
+        if (env.NODE_ENV === 'development') {
+            const { devProfilesStore } = await import('../modules/auth/auth.service.js');
+            profile = devProfilesStore.get(decoded.id) || devProfilesStore.get(decoded.phone);
+        }
+        if (!profile) {
+            throw ApiError.unauthorized('User profile not found or inactive');
+        }
+    } else {
+        profile = data;
     }
 
+
     req.user = profile;
-    req.authUser = authData.user;
     req.token = token;
 
     next();

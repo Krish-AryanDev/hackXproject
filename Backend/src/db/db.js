@@ -5,12 +5,13 @@ import env, { validateEnv } from '../config/env.js';
 validateEnv();
 
 const supabaseUrl = env.SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = env.SUPABASE_ANON_KEY || 'placeholder-anon-key';
+// Prefer service role key on backend to bypass RLS restrictions, fallback to anon key
+const activeKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY || 'placeholder-key';
 
 /**
- * Primary Supabase Client (Using Anon Key)
+ * Primary Supabase Client (For general queries)
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(supabaseUrl, activeKey, {
     auth: {
         persistSession: false,
         autoRefreshToken: false,
@@ -18,24 +19,22 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 /**
- * Admin Supabase Client (Service Role for backend-privileged operations if provided)
+ * Admin Supabase Client (Privileged backend access)
  */
-export const supabaseAdmin = env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(supabaseUrl, env.SUPABASE_SERVICE_ROLE_KEY, {
-          auth: {
-              persistSession: false,
-              autoRefreshToken: false,
-          },
-      })
-    : supabase;
+export const supabaseAdmin = createClient(supabaseUrl, activeKey, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+    },
+});
 
 /**
  * Verify Supabase database connection connectivity
  * @returns {Promise<boolean>}
  */
 export const connectDB = async () => {
-    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-        console.warn('⚠️  Cannot connect: Missing SUPABASE_URL or SUPABASE_ANON_KEY in environment');
+    if (!env.SUPABASE_URL || (!env.SUPABASE_ANON_KEY && !env.SUPABASE_SERVICE_ROLE_KEY)) {
+        console.warn('⚠️  Cannot connect: Missing SUPABASE_URL or Supabase Key in environment');
         return false;
     }
 
@@ -43,8 +42,8 @@ export const connectDB = async () => {
         const res = await fetch(`${env.SUPABASE_URL}/rest/v1/`, {
             method: 'GET',
             headers: {
-                apikey: env.SUPABASE_ANON_KEY,
-                Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
+                apikey: activeKey,
+                Authorization: `Bearer ${activeKey}`,
             },
         });
 

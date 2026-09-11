@@ -1,31 +1,51 @@
 import { asyncHandler } from '../../utils/asyncHandler.util.js';
 import { sendSuccess, sendCreated } from '../../utils/response.util.js';
 import {
-    sendPhoneOtp,
-    verifyPhoneOtp,
+    requestPhoneOtp,
+    registerUser,
+    loginUser,
+    verifyOtpUnified,
     getUserProfile,
     updateUserProfile,
 } from './auth.service.js';
 
 /**
- * Request SMS OTP
+ * Request Phone OTP for Login or Signup
  * POST /api/v1/auth/send-otp
  */
 export const sendOtpHandler = asyncHandler(async (req, res) => {
     const { phone } = req.body;
-    const result = await sendPhoneOtp(phone);
-    return sendSuccess(res, result, 'OTP sent successfully');
+    const result = await requestPhoneOtp(phone);
+    return sendSuccess(res, result, result.message);
 });
 
 /**
- * Verify SMS OTP and Log In / Register
+ * Register New User
+ * POST /api/v1/auth/register
+ */
+export const registerHandler = asyncHandler(async (req, res) => {
+    const result = await registerUser(req.body);
+    return sendCreated(res, result, 'User registered successfully');
+});
+
+/**
+ * Log In Existing User
+ * POST /api/v1/auth/login
+ */
+export const loginHandler = asyncHandler(async (req, res) => {
+    const { phone, otp } = req.body;
+    const result = await loginUser(phone, otp);
+    return sendSuccess(res, result, 'Login successful');
+});
+
+/**
+ * Unified OTP Verification (handles both login and on-the-fly registration)
  * POST /api/v1/auth/verify-otp
  */
 export const verifyOtpHandler = asyncHandler(async (req, res) => {
-    const { phone, token, role, fullName, companyName } = req.body;
-    const result = await verifyPhoneOtp(phone, token, role, fullName, companyName);
-    const message = result.isNewUser ? 'User registered and authenticated successfully' : 'Login successful';
-    return sendSuccess(res, result, message);
+    const result = await verifyOtpUnified(req.body);
+    const msg = result.isNewUser ? 'User registered and authenticated' : 'Login successful';
+    return sendSuccess(res, result, msg);
 });
 
 /**
