@@ -1,43 +1,62 @@
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+import env, { validateEnv } from '../config/env.js';
 
-dotenv.config();
+// Validate env variables on module import
+validateEnv();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = env.SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Warning: SUPABASE_URL or SUPABASE_ANON_KEY is missing in .env');
-}
+/**
+ * Primary Supabase Client (Using Anon Key)
+ */
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+    },
+});
 
-export const supabase = createClient(
-    supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder-key'
-);
+/**
+ * Admin Supabase Client (Service Role for backend-privileged operations if provided)
+ */
+export const supabaseAdmin = env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(supabaseUrl, env.SUPABASE_SERVICE_ROLE_KEY, {
+          auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+          },
+      })
+    : supabase;
 
+/**
+ * Verify Supabase database connection connectivity
+ * @returns {Promise<boolean>}
+ */
 export const connectDB = async () => {
-    if (!supabaseUrl || !supabaseAnonKey) {
-        console.warn('Cannot connect: Missing SUPABASE_URL or SUPABASE_ANON_KEY in .env');
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+        console.warn('⚠️  Cannot connect: Missing SUPABASE_URL or SUPABASE_ANON_KEY in environment');
         return false;
     }
 
     try {
-        const res = await fetch(`${supabaseUrl}/rest/v1/`, {
+        const res = await fetch(`${env.SUPABASE_URL}/rest/v1/`, {
+            method: 'GET',
             headers: {
-                apikey: supabaseAnonKey,
-                Authorization: `Bearer ${supabaseAnonKey}`,
+                apikey: env.SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
             },
         });
 
         if (res.ok || res.status === 200) {
-            console.log(' Supabase connected successfully');
+            console.log('✅ Supabase connected successfully');
             return true;
         } else {
-            console.error(`Supabase connection failed with status: ${res.status}`);
+            console.warn(`⚠️ Supabase ping returned status: ${res.status} (${res.statusText})`);
             return false;
         }
     } catch (error) {
-        console.error('Supabase connection error:', error.message);
+        console.error('❌ Supabase connection error:', error.message);
         return false;
     }
 };
