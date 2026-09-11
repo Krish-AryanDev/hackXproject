@@ -1,24 +1,24 @@
 /**
  * Modules Registry & Route Aggregator
- * Domain modules will be exported and mounted here as we build them step-by-step.
  */
 import { Router } from 'express';
+import authRoutes from './auth/auth.routes.js';
+import vehicleRoutes from './vehicles/vehicle.routes.js';
+import tripRoutes from './trips/trip.routes.js';
 
 const apiRouter = Router();
 
-// Future Phase Modules:
-// import authRoutes from './auth/auth.routes.js';
-// import vehicleRoutes from './vehicles/vehicle.routes.js';
-// import tripRoutes from './trips/trip.routes.js';
+// Mounted Modules
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/vehicles', vehicleRoutes);
+apiRouter.use('/trips', tripRoutes);
+
+// Upcoming Modules (Phases 3-6)
 // import matchingRoutes from './matching/matching.routes.js';
 // import bookingRoutes from './bookings/booking.routes.js';
 // import podRoutes from './pod/pod.routes.js';
 // import analyticsRoutes from './analytics/analytics.routes.js';
 // import reviewRoutes from './reviews/review.routes.js';
-
-// apiRouter.use('/auth', authRoutes);
-// apiRouter.use('/vehicles', vehicleRoutes);
-// apiRouter.use('/trips', tripRoutes);
 // apiRouter.use('/matching', matchingRoutes);
 // apiRouter.use('/bookings', bookingRoutes);
 // apiRouter.use('/pod', podRoutes);

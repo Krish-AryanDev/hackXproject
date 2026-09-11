@@ -78,9 +78,9 @@ $$ LANGUAGE plpgsql;
 
 CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(20),
-    full_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
+    full_name VARCHAR(255) NOT NULL DEFAULT 'User',
     role user_role NOT NULL DEFAULT 'business',
     company_name VARCHAR(255),
     gst_number VARCHAR(50),
@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 
 DROP TRIGGER IF EXISTS set_profiles_updated_at ON profiles;
 CREATE TRIGGER set_profiles_updated_at
@@ -280,6 +281,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- =============================================================================
 
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
+CREATE INDEX IF NOT EXISTS idx_profiles_phone ON profiles(phone);
 CREATE INDEX IF NOT EXISTS idx_vehicles_owner ON vehicles(owner_id);
 CREATE INDEX IF NOT EXISTS idx_trips_status ON trips(status);
 CREATE INDEX IF NOT EXISTS idx_trips_departure ON trips(departure_time);
