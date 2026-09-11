@@ -58,9 +58,9 @@ async function seed() {
     console.log('🌱 Seeding return trips into Supabase...');
 
     // 1. Profiles
-    const owner = await getOrCreateProfile('+919811223344', 'Rajesh Kumar Transporters', 'owner', 'Rajesh Logistics Pvt Ltd');
-    const driver1 = await getOrCreateProfile('+919711223344', 'Harish Singh', 'driver');
-    const driver2 = await getOrCreateProfile('+919755667788', 'Suresh Gurjar', 'driver');
+    const owner = await getOrCreateProfile('+919811223344', 'Kshitij Chaubey', 'owner', 'Kshitij Chaubey Transporters Pvt Ltd');
+    const driver1 = await getOrCreateProfile('+919031350700', 'Krish Aryan', 'driver');
+    const driver2 = await getOrCreateProfile('+919755667788', 'Rajesh Sharma', 'driver');
 
     console.log('✅ Profiles ready:', { owner: owner.id, driver1: driver1.id, driver2: driver2.id });
 
@@ -70,8 +70,8 @@ async function seed() {
         assigned_driver_id: driver1.id,
         registration_number: 'RJ14-GB-9821',
         vehicle_type: 'closed_container',
-        max_weight_capacity_tons: 15.0,
-        model_name: 'Tata Signa 4825.TK',
+        max_weight_capacity_tons: 10.0,
+        model_name: 'Krish Truck (Tata Signa 4825.TK)',
     });
 
     const v2 = await getOrCreateVehicle({
@@ -118,16 +118,18 @@ async function seed() {
             destination_lat: 28.7041,
             destination_lng: 77.1025,
             route_waypoints: [
-                { name: 'Kotputli Checkpoint (ETA 30 mins)', lat: 27.7011, lng: 76.1982 },
-                { name: 'Manesar IMT Logistics', lat: 28.3512, lng: 76.9421 },
+                { name: 'Kotputli Corridor Hub', lat: 27.7011, lng: 76.1982 },
+                { name: 'Behror Freight Terminal', lat: 27.8821, lng: 76.2812 },
+                { name: 'Neemrana Industrial Zone', lat: 27.9892, lng: 76.3812 },
+                { name: 'Gurgaon IMT Manesar', lat: 28.3512, lng: 76.9421 },
             ],
             departure_time: new Date(Date.now() + 1800000).toISOString(),
             estimated_arrival_time: new Date(Date.now() + 18000000).toISOString(),
-            total_capacity_tons: 15.0,
+            total_capacity_tons: 10.0,
             current_loaded_tons: 8.0,
-            available_capacity_tons: 7.0,
+            available_capacity_tons: 2.0,
             existing_cargo_category: 'dry_packaged_fmcg',
-            existing_cargo_description: '8 tons of sealed cardboard packaged dry wheat biscuits',
+            existing_cargo_description: '8.0 tons of sealed cardboard packaged dry wheat biscuits & grocery',
             base_price_per_km_ton: 1.70,
             status: 'scheduled',
         },
