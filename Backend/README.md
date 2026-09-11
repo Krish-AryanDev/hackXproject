@@ -342,3 +342,126 @@ Update trip lifecycle status.
   }
   ```
   *(Status options: `scheduled`, `active`, `completed`, `cancelled`)*
+
+---
+
+### 4. Smart Matching & AI Cargo Compatibility (`/api/v1/matching`)
+
+#### `POST /api/v1/matching/search`
+Search matching return trucks passing along a corridor with sufficient spare capacity and **Groq AI Cargo Compatibility** evaluation.
+- **Access**: Public / Authenticated
+- **Request Body**:
+  ```json
+  {
+    "pickup_lat": 27.7011,
+    "pickup_lng": 76.1982,
+    "drop_lat": 28.4720,
+    "drop_lng": 77.0725,
+    "weight_tons": 2.0,
+    "cargo_category": "Packaged Dry FMCG",
+    "cargo_description": "2 tons of sealed dry tea packets in corrugated boxes",
+    "max_detour_km": 25,
+    "pickup_date": "2026-09-12"
+  }
+  ```
+- **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Found 1 matching return trip(s)",
+    "data": {
+      "matches_found": 1,
+      "direct_distance_km": 121.4,
+      "trips": [
+        {
+          "trip_id": "98a123f4-...",
+          "match_rank_score": 94,
+          "vehicle": {
+            "registration_number": "RJ14GB9821",
+            "vehicle_type": "closed_container",
+            "model_name": "Tata Signa"
+          },
+          "driver": {
+            "full_name": "Harish Singh",
+            "phone": "+919876543210",
+            "rating_avg": "4.90"
+          },
+          "owner": {
+            "full_name": "Rajesh Kumar",
+            "company_name": "Rajesh Freight Lines"
+          },
+          "route": {
+            "origin_name": "Jaipur, Rajasthan",
+            "destination_name": "Delhi NCR",
+            "departure_time": "2026-09-12T08:00:00Z"
+          },
+          "capacity": {
+            "total_capacity_tons": 10.0,
+            "current_loaded_tons": 8.0,
+            "available_capacity_tons": 2.0,
+            "requested_weight_tons": 2.0,
+            "remaining_after_booking": 0.0
+          },
+          "corridor_metrics": {
+            "pickup_distance_km": 4.2,
+            "drop_distance_km": 6.8,
+            "total_detour_km": 11.0,
+            "shipment_distance_km": 128.5
+          },
+          "pricing": {
+            "base_price_per_km_ton": 6.5,
+            "discount_percentage": 15,
+            "estimated_total_price": 1420,
+            "currency": "INR"
+          },
+          "ai_compatibility": {
+            "is_compatible": true,
+            "compatibility_score": 95,
+            "safety_level": "SAFE",
+            "hazards_identified": [],
+            "special_handling_instructions": "Ensure dry tea boxes are placed on elevated pallets separated from existing biscuit cartons.",
+            "reasoning": "Both shipments are dry packaged non-hazardous grocery consumables with zero chemical reactivity or contamination risk."
+          }
+        }
+      ]
+    }
+  }
+  ```
+
+#### `POST /api/v1/matching/check-compatibility`
+Direct standalone AI Cargo Compatibility Checker powered by Groq LLM.
+- **Access**: Public / Authenticated
+- **Request Body**:
+  ```json
+  {
+    "existingCargo": {
+      "category": "Food Consumables",
+      "description": "6 tons of packaged wheat grain bags"
+    },
+    "newCargo": {
+      "category": "Industrial Chemicals",
+      "description": "2 tons of liquid pesticide drums",
+      "weight_tons": 2.0
+    }
+  }
+  ```
+- **Response (200 OK - Hazardous Incompatible Example)**:
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Cargo compatibility evaluated by AI",
+    "data": {
+      "is_compatible": false,
+      "compatibility_score": 15,
+      "safety_level": "HAZARDOUS",
+      "hazards_identified": [
+        "Severe toxicity and cross-contamination hazard between toxic pesticide chemicals and edible grain food products"
+      ],
+      "special_handling_instructions": "Strictly prohibited from co-loading. Requires dedicated hazardous materials transportation.",
+      "reasoning": "Chemical fumes and liquid leakage risk from pesticide drums can contaminate consumable grains, violating food safety laws."
+    }
+  }
+  ```
+
