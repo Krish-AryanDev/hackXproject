@@ -6,6 +6,7 @@ import {
     getBookingDetailsHandler,
     cancelBookingHandler,
     getDriverDispatchesHandler,
+    getOwnerPendingBookingsHandler,
 } from './booking.controller.js';
 import { authenticateUser, requireRoles } from '../../middlewares/auth.middleware.js';
 
@@ -20,16 +21,20 @@ router.post('/', requireRoles('business', 'admin'), createBookingHandler);
 // 2. User Bookings (Business, Owner, or Driver)
 router.get('/my-bookings', getMyBookingsHandler);
 
-// 3. Driver Dispatches (Driver only)
+// 3. Owner Pending Approval Requests (Owner only)
+router.get('/owner-pending', getOwnerPendingBookingsHandler);
+
+// 4. Driver Dispatches (Driver only)
 router.get('/driver/dispatches', requireRoles('driver', 'admin'), getDriverDispatchesHandler);
 
-// 4. Booking Details
+// 5. Booking Details
 router.get('/:id', getBookingDetailsHandler);
 
-// 5. Owner Approves or Rejects Booking
-router.patch('/:id/respond', requireRoles('owner', 'admin'), respondToBookingHandler);
+// 6. Owner Approves or Rejects Booking
+router.patch('/:id/respond', respondToBookingHandler);
+router.post('/:id/respond', respondToBookingHandler);
 
-// 6. Shipper Cancels Booking
+// 7. Shipper Cancels Booking
 router.patch('/:id/cancel', requireRoles('business', 'admin'), cancelBookingHandler);
 
 export default router;

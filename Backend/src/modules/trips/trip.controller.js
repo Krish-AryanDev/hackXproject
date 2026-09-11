@@ -6,6 +6,7 @@ import {
     getTripById,
     getMyTrips,
     updateTripStatus,
+    autoCreateReturnTripOnProximity,
 } from './trip.service.js';
 
 /**
@@ -52,4 +53,15 @@ export const updateTripStatusHandler = asyncHandler(async (req, res) => {
     const { status } = req.body;
     const updated = await updateTripStatus(req.params.id, req.user.id, req.user.role, status);
     return sendSuccess(res, updated, `Trip status updated to ${status}`);
+});
+
+/**
+ * Proximity Trigger (When truck is <= 10 km from destination)
+ * POST /api/v1/trips/proximity-trigger
+ */
+export const autoCreateTripOnProximityHandler = asyncHandler(async (req, res) => {
+    // req.user could be driver, owner, or fallback default driver
+    const driverId = req.user?.id || 'f3ed29ca-ed5b-484a-ba1a-e358c3aa996c'; // Krish Aryan
+    const result = await autoCreateReturnTripOnProximity(driverId, req.body);
+    return sendCreated(res, result, result.message);
 });

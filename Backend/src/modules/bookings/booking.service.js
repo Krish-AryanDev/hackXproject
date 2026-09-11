@@ -226,11 +226,14 @@ export const respondToBooking = async (bookingId, ownerId, action, rejectionReas
         throw ApiError.badRequest('Cannot approve: adding this shipment exceeds the maximum truck capacity');
     }
 
-    // Update trip loaded capacity (PostgreSQL trigger automatically computes available_capacity_tons)
+    // Update trip loaded capacity & status upon approval (automatically removes from available marketplace)
+    const isFullyBooked = newLoadedTons >= parseFloat(booking.trip.total_capacity_tons);
     const { error: tripUpdateErr } = await supabaseAdmin
         .from('trips')
         .update({
             current_loaded_tons: newLoadedTons,
+            status: isFullyBooked ? 'completed' : 'active',
+            available_capacity_tons: Math.max(0, parseFloat(booking.trip.total_capacity_tons) - newLoadedTons),
             updated_at: new Date().toISOString(),
         })
         .eq('id', booking.trip_id);
@@ -251,9 +254,9 @@ export const respondToBooking = async (bookingId, ownerId, action, rejectionReas
             *,
             business:profiles!shipment_requests_business_id_fkey(id, full_name, phone, company_name),
             trip:trips(
-                id, origin_name, destination_name, available_capacity_tons, current_loaded_tons,
+                id, origin_name, destination_name, available_capacity_tons, current_loaded_tons, status,
                 driver:profiles!trips_driver_id_fkey(id, full_name, phone),
-                vehicle:vehicles(registration_number, vehicle_type)
+                vehicle:vehicles(registration_number, vehicle_type, model_name)
             )
         `)
         .single();
@@ -264,8 +267,64 @@ export const respondToBooking = async (bookingId, ownerId, action, rejectionReas
 
     return {
         booking: approvedBooking,
-        message: 'Booking approved successfully and dispatched to the vehicle driver',
+        message: 'Booking approved by owner! Trip removed from available pool and dispatched to driver.',
     };
+};
+
+/**
+ * Get all pending booking approval requests specifically for the vehicle owner's own vehicles
+ */
+export const getOwnerPendingBookings = async (ownerId) => {
+    if (!ownerId) {
+        return [];
+    }
+
+    // 1. Fetch all vehicles owned by this specific owner
+    const { data: ownedVehicles } = await supabaseAdmin
+        .from('vehicles')
+        .select('id')
+        .eq('owner_id', ownerId);
+
+    const ownedVehicleIds = (ownedVehicles || []).map((v) => v.id);
+
+    // 2. Fetch all trips where owner_id is this user OR vehicle_id is in their owned vehicles
+    let tripQuery = supabaseAdmin.from('trips').select('id');
+    if (ownedVehicleIds.length > 0) {
+        tripQuery = tripQuery.or(`owner_id.eq.${ownerId},vehicle_id.in.(${ownedVehicleIds.join(',')})`);
+    } else {
+        tripQuery = tripQuery.eq('owner_id', ownerId);
+    }
+
+    const { data: ownerTrips, error: tripErr } = await tripQuery;
+
+    if (tripErr || !ownerTrips || ownerTrips.length === 0) {
+        return [];
+    }
+
+    const tripIds = ownerTrips.map((t) => t.id);
+
+    // 3. Fetch pending booking requests strictly for these owned trips & vehicles
+    const { data: pendingRequests, error } = await supabaseAdmin
+        .from('shipment_requests')
+        .select(`
+            *,
+            business:profiles!shipment_requests_business_id_fkey(id, full_name, phone, company_name),
+            trip:trips(
+                id, origin_name, destination_name, available_capacity_tons, current_loaded_tons, status, owner_id,
+                vehicle:vehicles(id, registration_number, vehicle_type, model_name, owner_id),
+                driver:profiles!trips_driver_id_fkey(id, full_name, phone),
+                owner:profiles!trips_owner_id_fkey(id, full_name, phone, company_name)
+            )
+        `)
+        .in('trip_id', tripIds)
+        .eq('status', 'pending_owner_approval')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        throw ApiError.internal(`Failed to fetch owner pending requests: ${error.message}`);
+    }
+
+    return pendingRequests || [];
 };
 
 /**
@@ -278,7 +337,7 @@ export const getMyBookings = async (userId, userRole, statusFilter) => {
             *,
             business:profiles!shipment_requests_business_id_fkey(id, full_name, phone, company_name),
             trip:trips(
-                id, origin_name, destination_name, departure_time, estimated_arrival_time, status,
+                id, origin_name, destination_name, departure_time, estimated_arrival_time, status, owner_id,
                 vehicle:vehicles(id, registration_number, vehicle_type, model_name),
                 driver:profiles!trips_driver_id_fkey(id, full_name, phone),
                 owner:profiles!trips_owner_id_fkey(id, full_name, phone, company_name)
@@ -286,12 +345,13 @@ export const getMyBookings = async (userId, userRole, statusFilter) => {
         `);
 
     if (userRole === 'business') {
+        // Business shipper only sees their own booked shipments
         query = query.eq('business_id', userId);
     } else if (userRole === 'owner') {
-        // Query bookings where the trip owner is the current user
+        // Owner only sees requests for their own vehicles
         query = query.filter('trip.owner_id', 'eq', userId);
     } else if (userRole === 'driver') {
-        // Query bookings assigned to this driver
+        // Driver only sees requests assigned to their vehicle
         query = query.filter('trip.driver_id', 'eq', userId);
     }
 

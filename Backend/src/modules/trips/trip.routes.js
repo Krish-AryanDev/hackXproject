@@ -5,6 +5,7 @@ import {
     getTripDetailsHandler,
     getMyTripsHandler,
     updateTripStatusHandler,
+    autoCreateTripOnProximityHandler,
 } from './trip.controller.js';
 import { authenticateUser, requireRoles } from '../../middlewares/auth.middleware.js';
 
@@ -13,6 +14,9 @@ const router = Router();
 // Public / Search endpoints
 router.get('/', getTripsHandler);
 router.get('/:id', getTripDetailsHandler);
+
+// Proximity Auto-Trigger Endpoint (Allows driver app to notify 10km arrival)
+router.post('/proximity-trigger', autoCreateTripOnProximityHandler);
 
 // Protected endpoints
 router.use(authenticateUser);

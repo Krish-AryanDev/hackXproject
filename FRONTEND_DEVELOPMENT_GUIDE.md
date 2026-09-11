@@ -1,5 +1,5 @@
-# 🚛 GreenHaul Exchange: Complete Frontend Blueprint & Engineering Specification
-**Project:** PS #7 Community Logistics Exchange for Empty Return Trips  
+# 🚛 Truber: Complete Frontend Blueprint & Engineering Specification
+**Project:** PS #7 Community Logistics Exchange for Empty Return Trips (Truber)  
 **Target:** Frontend Engineers & UI/UX Designers  
 **Backend API Base URL:** `http://localhost:5000/api/v1`  
 **Document Purpose:** Complete single-file master specification containing system vision, screen-by-screen UX wireframes, Google Maps/GPS integration guides, state management architecture, and exact API contract recipes to build a 100% functional, end-to-end working prototype.
@@ -10,7 +10,7 @@
 
 The Indian freight economy suffers from a massive **40%+ empty return haulage (deadhead)** crisis. Commercial trucks return from deliveries completely empty, burning fuel, emitting tons of $\text{CO}_2$, and generating ₹0 revenue.
 
-**GreenHaul Exchange** is a high-performance, dual-sided logistics web/mobile application that bridges this gap:
+**Truber** is a high-performance, dual-sided logistics web/mobile application that bridges this gap:
 1. **Transporters & Drivers (Carrier Experience):** Monetize empty backhaul legs by publishing available corridor space with waypoint flexibility.
 2. **MSMEs & Enterprise Shippers (Business Experience):** Search trucks already moving along their highway corridor and book partial loads (LTL) at a **25%–35% discount** with sub-second **Groq AI Cargo Safety Validation**.
 3. **Green Sustainability (ESG Impact):** Live calculation and visualization of $\text{CO}_2$ emissions avoided, diesel conserved, and Scope 3 carbon reduction.
@@ -199,7 +199,7 @@ const api = axios.create({
 
 // Automatic JWT Bearer token attachment
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('greenhaul_token');
+  const token = localStorage.getItem('truber_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
